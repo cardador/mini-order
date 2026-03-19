@@ -26,6 +26,7 @@ func main() {
 	}()
 
 	http.HandleFunc("/order", logger.Logger(api.HandleOrder))
+	http.HandleFunc("/order/get", logger.Logger(api.GetOrder))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
