@@ -21,7 +21,7 @@ func SaveOrder(o Order) {
 
 func GetOrder(id string) (Order, bool) {
 	dbLock.RLock()
-	defer dbLock.RLocker().Unlock()
+	defer dbLock.RUnlock()
 	val, exists := db[id]
 	return val, exists
 }
