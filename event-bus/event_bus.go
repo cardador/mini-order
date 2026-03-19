@@ -16,6 +16,12 @@ func ProcessOrder() {
 	}
 }
 
-func AddOrder(o store.Order) {
-	eventbus <- o
+func AddOrder(o store.Order) bool {
+	select {
+	case eventbus <- o:
+		return true
+	default:
+		fmt.Printf("[WARN] Event bus full, dropping order %s\n", o.ID)
+		return false
+	}
 }

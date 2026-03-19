@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	eventbus "interview/order/event-bus"
 	"interview/order/store"
 	"net/http"
@@ -21,7 +22,10 @@ func HandleOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	store.SaveOrder(newOrder)
-	eventbus.AddOrder(newOrder)
+	if !eventbus.AddOrder(newOrder) {
+		err := fmt.Sprintf("Failed to add order %s", newOrder.ID)
+		http.Error(w, err, http.StatusInternalServerError)
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{"status": "order_received"})
