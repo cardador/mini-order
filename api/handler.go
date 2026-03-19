@@ -1,14 +1,19 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	eventbus "interview/order/event-bus"
 	"interview/order/store"
 	"net/http"
+	"time"
 )
 
 func HandleOrder(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -21,14 +26,26 @@ func HandleOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.SaveOrder(newOrder)
-	if !eventbus.AddOrder(newOrder) {
-		err := fmt.Sprintf("Failed to add order %s", newOrder.ID)
-		http.Error(w, err, http.StatusInternalServerError)
-	}
+	done := make(chan struct{})
 
-	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{"status": "order_received"})
+	go func() {
+		store.SaveOrder(newOrder)
+		close(done)
+	}()
+
+	select {
+	case <-ctx.Done():
+		http.Error(w, "Request timed out or cancelled", http.StatusRequestTimeout)
+		return
+	case <-done:
+		if !eventbus.AddOrder(newOrder) {
+			err := fmt.Sprintf("Failed to add order %s", newOrder.ID)
+			http.Error(w, err, http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]string{"status": "order_received"})
+	}
 
 }
 
