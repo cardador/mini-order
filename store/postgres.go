@@ -28,7 +28,7 @@ func (ps *PostgresStore) SaveOrder(ctx context.Context, o model.Order) error {
 
 func (ps *PostgresStore) GetOrder(ctx context.Context, id string) (model.Order, error) {
 	var o model.Order
-	query := `SELECT * FROM orders WHERE ID = $1`
+	query := `SELECT id, item, amount FROM orders WHERE ID = $1`
 	err := ps.db.QueryRowContext(ctx, query, id).Scan(&o.ID, &o.Item, &o.Amount)
 	return o, err
 }
