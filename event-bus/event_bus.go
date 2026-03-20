@@ -2,11 +2,11 @@ package eventbus
 
 import (
 	"fmt"
-	store "interview/order/store"
+	"interview/order/model"
 	"time"
 )
 
-var eventbus = make(chan store.Order, 100)
+var eventbus = make(chan model.Order, 100)
 
 func ProcessOrder() {
 	for order := range eventbus {
@@ -16,7 +16,7 @@ func ProcessOrder() {
 	}
 }
 
-func AddOrder(o store.Order) bool {
+func AddOrder(o model.Order) bool {
 	select {
 	case eventbus <- o:
 		return true

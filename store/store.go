@@ -1,27 +1,11 @@
 package store
 
-import "sync"
-
-type Order struct {
-	ID     string  `json:"id"`
-	Item   string  `json:"item"`
-	Amount float64 `json:"amount"`
-}
-
-var (
-	db     = make(map[string]Order)
-	dbLock sync.RWMutex
+import (
+	"context"
+	"interview/order/model"
 )
 
-func SaveOrder(o Order) {
-	dbLock.Lock()
-	defer dbLock.Unlock()
-	db[o.ID] = o
-}
-
-func GetOrder(id string) (Order, bool) {
-	dbLock.RLock()
-	defer dbLock.RUnlock()
-	val, exists := db[id]
-	return val, exists
+type Repository interface {
+	SaveOrder(ctx context.Context, o model.Order) error
+	GetOrder(ctx context.Context, id string) (model.Order, error)
 }

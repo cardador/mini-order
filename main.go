@@ -6,6 +6,7 @@ import (
 	"interview/order/api"
 	eventbus "interview/order/event-bus"
 	"interview/order/logger"
+	"interview/order/store"
 	"log"
 	"net/http"
 	"os"
@@ -24,9 +25,14 @@ func main() {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
+	connStr := "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+	db, err := store.NewPostgresStore(connStr)
+	if err != nil {
+		log.Fatalf("Problem to initialize DB, %s", err)
+	}
 
-	http.HandleFunc("/order", logger.Logger(api.HandleOrder))
-	http.HandleFunc("/order/get", logger.Logger(api.GetOrder))
+	http.HandleFunc("/order", logger.Logger(api.HandleOrder(db)))
+	http.HandleFunc("/order/get/{id}", logger.Logger(api.GetOrder(db)))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
@@ -40,5 +46,4 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
-
 }
