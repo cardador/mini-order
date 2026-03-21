@@ -26,5 +26,17 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 EOF
 
+echo "📂 Creating DynamoDB 'Orders' table..."
+
+# Adding environment variables directly to the command
+AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy \
+aws dynamodb create-table \
+    --endpoint-url http://localhost:8000 \
+    --table-name Orders \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+    --region us-east-1
+
 echo "✅ Database initialized successfully!"
 echo "🏃 You can now run: go run main.go"

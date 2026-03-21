@@ -12,6 +12,11 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 func main() {
@@ -30,9 +35,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Problem to initialize DB, %s", err)
 	}
+	// DynamoDB
+	ctx := context.TODO()
+
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion("us-east-1"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+	)
+	if err != nil {
+		panic(err)
+	}
+	dynamoClient := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+		o.BaseEndpoint = aws.String("http://localhost:8000")
+	})
+	repo := store.NewDynamoStore(dynamoClient, "Orders")
 
 	http.HandleFunc("/order", logger.Logger(api.HandleOrder(db)))
 	http.HandleFunc("/order/get/{id}", logger.Logger(api.GetOrder(db)))
+
+	http.HandleFunc("/dynamo/order", logger.Logger(api.HandleOrder(repo)))
+	http.HandleFunc("/dynamo/order/get/{id}", logger.Logger(api.GetOrder(repo)))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)

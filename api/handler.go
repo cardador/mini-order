@@ -3,12 +3,14 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	eventbus "interview/order/event-bus"
 	"interview/order/model"
 	"interview/order/store"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/lib/pq"
 )
 
@@ -24,12 +26,18 @@ func HandleOrder(repo store.Repository) http.HandlerFunc {
 			return
 		}
 		err := repo.SaveOrder(r.Context(), newOrder)
+		fmt.Printf("Failed to save to DB: %s", err)
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); ok {
 				if pgErr.Code == "23505" {
 					http.Error(w, "Order ID already exists", http.StatusConflict)
 					return
 				}
+			}
+			var checkFailed *types.ConditionalCheckFailedException
+			if errors.As(err, &checkFailed) {
+				http.Error(w, "Entry already exists", http.StatusConflict)
+				return
 			}
 
 			http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
